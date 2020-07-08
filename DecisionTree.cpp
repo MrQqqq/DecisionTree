@@ -4,7 +4,7 @@
  * @Github: https://github.com/MrQqqq
  * @Date: 2020-06-29 01:31:54
  * @LastEditors: szq
- * @LastEditTime: 2020-07-08 17:10:00
+ * @LastEditTime: 2020-07-08 18:57:10
  * @FilePath: \cpp\src\DecisionTree\DecisionTree.cpp
  */ 
 
@@ -19,7 +19,7 @@ using namespace std;
  * @param {type} trainData：训练数据  trainLabel：训练标签
  * @return: 没有返回值
  */
-void DecisionTree::loadData(vector<vector<int>> trainData,vector<int> trainLabel){
+void DecisionTree::loadData(vector<vector<int>> &trainData,vector<int> &trainLabel){
     //如果数据特征向量的数量和数据集标签的数量不一样的时候，数据有问题
     if(trainData.size() != trainLabel.size()){
         cerr << "input error" << endl;
@@ -42,7 +42,7 @@ void DecisionTree::loadData(vector<vector<int>> trainData,vector<int> trainLabel
  * @param {type} dataset：数据集，是训练数据的子集，整型数组表示，每一个整数表示第几个训练数据
  * @return: 标签名，标签数的map
  */
-map<int,int> DecisionTree::labelCount(vector<int> dataset){
+map<int,int> DecisionTree::labelCount(vector<int> &dataset){
     map<int,int> res;
     //遍历数据集，统计标签出现的次数
     for(int index : dataset){
@@ -57,7 +57,7 @@ map<int,int> DecisionTree::labelCount(vector<int> dataset){
  * @return: 信息熵
  */
 
-double DecisionTree::caculateEntropy(vector<int> dataset){
+double DecisionTree::caculateEntropy(vector<int> &dataset){
     map<int,int> label_count = labelCount(dataset);
     int len = dataset.size();
     double result = 0;
@@ -75,7 +75,7 @@ double DecisionTree::caculateEntropy(vector<int> dataset){
  * @param value:第几个特征的特征值
  * @return: 返回划分的子集
  */    
-vector<int> DecisionTree::splitDataset(vector<int> dataset,int feature,int value){
+vector<int> DecisionTree::splitDataset(vector<int> &dataset,int &feature,int &value){
     vector<int> res;
     for(int index : dataset){
         if(trainData[index][feature] == value){
@@ -90,7 +90,7 @@ vector<int> DecisionTree::splitDataset(vector<int> dataset,int feature,int value
  * @param {type} 
  * @return: 
  */
-double DecisionTree::caculateGain(vector<int> dataset,int feature){
+double DecisionTree::caculateGain(vector<int> &dataset,int &feature){
     set<int> values = featureValues[feature];
     double result = 0;
     for(int value : values){
@@ -121,17 +121,18 @@ int DecisionTree::getMaxTimesLabel(map<int,int> &labelCount){
 /**
  * @destription: 获取特征集信息增益中最大的信息增益和所对应的特征
  * @param gains:特征集的信息增益
- * @param max_gain_feature:最大信息增益对应的特征
- * @param max_gain:最大的信息增益
- * @return: 没有返回值，返回值直接保存在参数里返回
+ * @return: 最大信息增益对应的特征
  */
-void DecisionTree::getMaxGainAndFeature(map<int,double> &gains,int &max_gain_feature,double &max_gain){
+int DecisionTree::getMaxGainFeature(map<int,double> &gains){
+    double max_gain = 0;
+    int max_gain_feature;
     for(auto gain : gains){
         if(max_gain <= gain.second){
             max_gain = gain.second;
             max_gain_feature = gain.first;
         }
     }
+    return max_gain_feature;
 }
 
 /**
@@ -140,7 +141,7 @@ void DecisionTree::getMaxGainAndFeature(map<int,double> &gains,int &max_gain_fea
  * @param features:特征集 
  * @return: 返回决策树根节点指针
  */
-TreeNode* DecisionTree::createTree(vector<int> dataset,vector<int> features){
+TreeNode* DecisionTree::createTree(vector<int> &dataset,vector<int> &features){
     TreeNode *root = new TreeNode();
     map<int,int> label_count = labelCount(dataset);
     //如果特征集为空，则该树为单节点树，类别为标签中出现次数最多的标签
@@ -163,11 +164,9 @@ TreeNode* DecisionTree::createTree(vector<int> dataset,vector<int> features){
     }
 
     //获取最大信息增益的特征和最大的信息增益
-    int max_gain_feature = 0;
-    double max_gain = 0;
-    getMaxGainAndFeature(gains,max_gain_feature,max_gain);
-    features.erase(find(features.begin(),features.end(),max_gain_feature));
+    int max_gain_feature = getMaxGainFeature(gains);
     vector<int> subFeatures = features;
+    subFeatures.erase(find(subFeatures.begin(),subFeatures.end(),max_gain_feature));
     for(int value : featureValues[max_gain_feature]){
         TreeNode *branch = new TreeNode();//创建分支
         vector<int> subDataset = splitDataset(dataset,max_gain_feature,value);
@@ -199,7 +198,7 @@ TreeNode* DecisionTree::createTree(vector<int> dataset,vector<int> features){
  * @param threshold:阈值
  * @return: 没有返回值
  */
-DecisionTree::DecisionTree(vector<vector<int>> trainData,vector<int> trainLabel,int threshold){
+DecisionTree::DecisionTree(vector<vector<int>> &trainData,vector<int> &trainLabel,int &threshold){
     loadData(trainData,trainLabel);//导入数据
     this->threshold = threshold;//设置阈值
     vector<int> dataset(trainData.size());//数据集
@@ -219,7 +218,7 @@ DecisionTree::DecisionTree(vector<vector<int>> trainData,vector<int> trainLabel,
  * @param root:决策树根节点
  * @return: 返回分类结果
  */
-int DecisionTree::classify(vector<int> testData,TreeNode *root){
+int DecisionTree::classify(vector<int> &testData,TreeNode *root){
     //如果决策树节点是叶子节点，直接返回结果
     if(root->isLeaf){
         return root->result;
@@ -255,11 +254,11 @@ int main(){
     };
     //训练标签
     vector<int> trainLabel = {0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0};
-
-    DecisionTree dt = DecisionTree(trainData,trainLabel,0);
+    int threshold = 0;
+    DecisionTree dt = DecisionTree(trainData,trainLabel,threshold);
     
     //测试数据
-    vector<int> testData = {0, 1, 0, 1};
+    vector<int> testData = {2,1,1,1};
     TreeNode *root = dt.decisionTreeRoot;
     int type = dt.classify(testData,root);
     cout << type << endl;
